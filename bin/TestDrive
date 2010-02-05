@@ -1,0 +1,273 @@
+#!/usr/bin/ruby
+
+# Take those review requests for a test drive!
+# Written by Mike Conley in Feb 2010 for the MarkUs Team.
+# Thanks to Severin for the code review!
+# http://www.markusproject.org
+# http://www.mikeconley.ca
+
+begin
+  require 'fileutils'
+  require 'yaml'
+  # in case json is a gem
+  require 'rubygems'
+  require 'json'
+  require 'net/http'
+  require 'getoptlong'
+rescue LoadError => e
+  $stderr.puts("Required library not found: '#{e.message}', Try installing with 'gem install json'")
+  exit(1)
+end
+
+CONFIG_FILE = 'TestDrive.conf.yml'
+VERBOSE = true
+NOISY = true
+LATEST = 'latest'
+RR_DIR_PREFIX = 'rev_req_'
+RR_DIFF_PREFIX = 'diff_for_rr_'
+SVN_CO_DIR_NAME = 'test_drive'
+MARKUS_REPO_DIR = 'repos'
+SETUP_SHELL_SCRIPT = 'prepare_markus.sh'
+DEFAULT_BRANCH = 'trunk'
+OPTS = GetoptLong.new(
+      [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
+      [ '--review-request-num', '-r', GetoptLong::REQUIRED_ARGUMENT ],
+      [ '--diff', '-d', GetoptLong::OPTIONAL_ARGUMENT ], 
+      [ '--autotest', '-a', GetoptLong::OPTIONAL_ARGUMENT ],
+      [ '--autostart', '-s', GetoptLong::OPTIONAL_ARGUMENT ],
+      [ '--pvalue', '-p', GetoptLong::OPTIONAL_ARGUMENT ]
+    )
+
+# In case people don't know what they're doing...
+def usage
+  $stderr.puts "Usage:  TestDrive -r[review request num] -d[diff version (defaults latest)] -a [to run rake test automatically] -s [to run script/server automatically] -p [p-value for patch (TestDrive attempts to guess)]"
+  exit(1)
+end
+
+# This is what we'll use to connect to ReviewBoard...
+class ReviewBoardClient
+  attr_accessor :url, :username, :password, :header, :http
+  def initialize(url, username, password)
+    self.url = url
+    self.username = username
+    self.password = password
+    self.http = nil
+    self.header = nil
+  end
+
+  def logged_in()
+    return self.header != nil
+  end
+
+  def login()
+    # Try to log into ReviewBoard
+    self.http = Net::HTTP.new(self.url)
+    path = '/api/json/accounts/login/'
+    data = {'username' => self.username, 'password' => self.password} 
+    r = self.http.post(path, hash_to_querystring(data))
+    cookie = r.response['set-cookie']
+    if cookie.nil?
+      raise "Could not login to ReviewBoard with your credentials.  Check " + CONFIG_FILE
+    end
+    self.header = {
+      'Cookie' => cookie
+    }
+    return true
+  end
+
+  def get_review_request_for(review_request_num)
+    path = '/api/json/reviewrequests/' + review_request_num.to_s + '/'
+    r = self.http.get(path, self.header)
+    if !r.is_a?(Net::HTTPSuccess)
+      raise "There was a problem getting review request ##{review_request_num} - are you sure it exists?"
+    end
+    return JSON.parse(r.body)
+  end
+  # Currently, there's no way to get the diffs through the API.  
+  # (See:  http://www.mail-archive.com/reviewboard@googlegroups.com/msg00860.html)
+  # Luckily, we can just go in through the front door instead...
+  def get_diff_for(review_num, diff_num)
+    path = '/r/' + review_num.to_s + '/diff/'
+    if diff_num != LATEST
+      path += diff_num.to_s
+    end
+    path += '/raw/'
+    r = http.get(path, self.header)
+    return r.body
+  end
+
+  # It boggles my mind that I had to implement this myself
+  # (or rather, steal it from:
+  # http://justanothercoder.wordpress.com/2009/04/24/converting-a-hash-to-a-query-string-in-ruby/)
+  def hash_to_querystring(hash)
+    hash.keys.inject('') do |query_string, key|
+      query_string << '&' unless key == hash.keys.first
+      query_string << "#{URI.encode(key.to_s)}=#{URI.encode(hash[key])}"
+    end
+  end
+end
+
+
+def load_config(config_file)
+  conf = YAML.load_file(config_file)  
+  # This is where I might configuration checks someday...
+  return conf
+end
+
+def load_params()
+  result = Hash.new
+  result['diff_num'] = LATEST
+  OPTS.each do |opt, arg|
+    case opt
+      when '--help'
+        usage()
+      when '--review-request-num'
+        result['review_request_num'] = arg
+      when '--diff'
+        result['diff_num'] = arg
+      when '--autotest'
+        result['autotest'] = true
+      when '--autostart'
+        result['autostart'] = true
+      when '--pvalue'
+        result['pvalue'] = arg
+    end
+  end
+  # We need at least this
+  if result['review_request_num'].nil?
+    usage()
+  end
+  return result
+end
+
+# So I can turn the noise off
+def msg(text)
+  print text if VERBOSE
+  STDOUT.flush
+end
+
+def msgln(text)
+  puts text if VERBOSE
+  STDOUT.flush
+end
+
+def beep()
+  print "\a" if NOISY
+end
+
+begin
+  params = load_params()
+  conf = load_config(CONFIG_FILE)
+  rb = ReviewBoardClient.new(conf['review_board']['url'], conf['review_board']['username'], conf['review_board']['password'])
+  # Log in to ReviewBoard...
+  msg("Logging into ReviewBoard...")
+  rb.login()
+  msgln("ok!")
+  msg("Trying to get Review Request ##{params['review_request_num']}...")
+  # Get the review request
+  review_request = rb.get_review_request_for(params['review_request_num'])
+  msgln("got it!")
+  # Get the diff
+  msg("Trying to get diff #{params['diff_num']}...")
+  diff = rb.get_diff_for(params['review_request_num'], params['diff_num'])
+  msgln("got it!")
+  # If there wasn't a branch specified, we need to ask...
+  if review_request['review_request']['branch'] == ""
+    beep()
+    puts "\nLooks like a branch wasn't specified.  Which branch is this review for? [#{DEFAULT_BRANCH}]:"
+    branch = gets
+    if branch.strip == ""
+      branch = DEFAULT_BRANCH
+    end
+  else
+    branch = review_request['review_request']['branch']
+  end
+  branch_path = review_request['review_request']['repository']['path'] + '/' + branch
+
+  # First, create the directory for this review_request
+  begin
+    rr_dir = RR_DIR_PREFIX + params['review_request_num']
+    msg("Making instance directory '#{rr_dir}'...")
+    FileUtils.mkdir rr_dir
+    FileUtils.cd rr_dir
+    FileUtils.mkdir MARKUS_REPO_DIR
+    msgln("ok!")
+    if File.exists?("../#{SETUP_SHELL_SCRIPT}")
+      msg("Found setup shell script - copying to instance dir...")
+      FileUtils.cp "../#{SETUP_SHELL_SCRIPT}", "."
+      msgln("ok!")
+    end
+
+    msg("Checking out instance from #{branch_path} - may take a minute or so...")
+    `svn co #{branch_path} #{SVN_CO_DIR_NAME}`
+    msgln("ok!")
+
+    # Prepare setup script
+    FileUtils.chmod(0744, SETUP_SHELL_SCRIPT)
+    # Run setup script
+    msgln("Running setup shell script:")
+    print `./#{SETUP_SHELL_SCRIPT}`
+    msgln("Done!")
+
+    # If the Diff starts with a header that contains the branch, we know
+    # that the p_value should be 1.  If not, should be 0.
+    if !params['pvalue'].nil?
+      p_value = params['pvalue']
+    else
+      if diff.split("\n").first =~ /Index: #{branch}/
+        p_value = 1
+      else
+        p_value = 0
+      end
+    end
+
+    FileUtils.cd SVN_CO_DIR_NAME
+
+    # Apply diff
+    msgln("Applying diff...")
+    diff_file = RR_DIFF_PREFIX + params['review_request_num']
+    File.open(diff_file, 'w') do |f|
+      f.write(diff)
+    end
+    `patch -p#{p_value} < #{diff_file}`
+
+    msgln("Creating / migrating databases...")
+    print `rake db:reset`
+    print `rake db:migrate`
+    print `rake db:schema:dump`
+    print `rake db:test:prepare`
+
+    msgln("Populating databases...")
+    print `rake db:populate`
+
+    if params['autotest']
+      msg("Running tests (dumping to test_report)...give this a few minutes...")
+      print `rake test > ../test_report 2>&1`
+    end
+    msgln("All done setting up!")
+    beep()
+    if params['autostart']
+      msgln("Firing it up! - should be good to go on localhost:3000 momentarily...")
+      exec 'script/server'
+    end
+    msgln("Just CD into #{File.join(rr_dir, SVN_CO_DIR_NAME)} and away you go.  Coolbeans!")
+
+  rescue Exception => e
+    raise(e)
+  end
+
+rescue GetoptLong::MissingArgument, GetoptLong::NeedlessArgument, GetoptLong::InvalidOption => e
+  puts e.message
+  usage()
+rescue Exception => e
+  if e.class != SystemExit
+    puts "\n\n---------------------------------"
+    puts e.message
+    puts e.inspect
+    puts 'BACKTRACE:'
+    puts e.backtrace
+    exit(1)  
+  end
+end
+
+
