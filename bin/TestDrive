@@ -14,8 +14,9 @@ begin
   require 'json'
   require 'net/http'
   require 'getoptlong'
+  require 'sqlite3'
 rescue LoadError => e
-  $stderr.puts("Required library not found: '#{e.message}', Try installing with 'gem install json'")
+  $stderr.puts("Required library not found: '#{e.message}'.  See README for requirements list.")
   exit(1)
 end
 

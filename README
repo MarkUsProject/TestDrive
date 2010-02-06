@@ -1,0 +1,70 @@
+= TestDrive
+
+TestDrive is a handy script for developers working on {The MarkUs Project}[http://www.markusproject.org].
+
+The MarkUs Project practices pre-commit code review with {ReviewBoard}[http://www.reviewboard.org] in order to reduce the number of 
+defects committed to the repository, and also as a way of quickly bringing new developers up to speed.
+
+But looking at the code is only half of the story.  It's just as important to *try* the code that's up
+for review, just to make sure it's up to snuff.  That's where TestDrive comes in.
+
+TestDrive will do the job of checking out a fresh copy of MarkUs, grabbing the diff up for review from ReviewBoard,
+configure the new MarkUs instance to your liking, splat the diff on top, and be up and running and ready for you to
+test drive in no time.
+
+TestDrive will even run the MarkUs test suites for you, and compile it into a report, if you'd like.
+
+Call it pre-commit continuous integration.  I hope it'll help you find more bugs.
+
+== Example usage
+
+Every review request up on ReviewBoard has a unique ID.  You can see this ID in the URL when you're viewing the
+review request.  For example, if I was looking at a review request, and the URL looked like:
+
+http://review.markusproject.org/r/210
+
+Then the review request number is, clearly, 210.
+
+That's really all you need to know to get started.  Once you've got TestDrive, run it like this:
+
+  ./TestDrive -r 210
+
+And it'll pretty much do all of the rest.  TestDrive might ask you to specify a branch to grab, in case it wasn't 
+made clear in the review request.
+
+== Other Neat Features
+
+TestDrive can also run the test suites, or start the server, as soon as the new instance is ready to go.
+
+  ./TestDrive -r 210 -a -s
+
+The -a parameter tells TestDrive to auto-test.  The -s tells TestDrive to run the server when it's ready to go.
+Pretty simple.
+
+To get a full list of parameters, type in:
+
+  ./TestDrive -h
+
+== Setup and Configuration
+
+Once you've downloaded TestDrive, you'll need to do two things:
+
+First, open up TestDrive.conf.yml, and fill in your ReviewBoard username and password.
+
+Secondly, take a look at prepare_markus.sh.  This is the shell script that is run to "prepare" MarkUs before
+applying the diff.  If you have any special requirements for set up, this is where they should go.
+
+== Requirements
+
+TestDrive, by default, sets up MarkUs instances with Sqlite3 database backends.  So you'll need the Sqlite3
+libraries for Ruby.  See {here}[http://accidentaltechnologist.com/ruby/ruby-on-rails/setting-up-sqlite3-for-ruby-on-rails-development/] for more information.
+
+You'll also need the {JSON Ruby gem}[http://flori.github.com/json/]
+
+== Authors & Credits
+
+Written by Mike Conley as an experiment, first mentioned on my blog {here}[http://mikeconley.ca/blog/2010/02/02/pre-commit-code-review-in-markus-development/].
+
+Thanks to {Severin}[http://www.jerboaa.org] for the help polishing it up!
+
+Want to help contribute to The MarkUs Project?  {Read more about it here!}[http://www.markusproject.org]
