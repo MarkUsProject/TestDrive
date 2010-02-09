@@ -54,12 +54,21 @@ First, open up TestDrive.conf.yml, and fill in your ReviewBoard username and pas
 Secondly, take a look at prepare_markus.sh.  This is the shell script that is run to "prepare" MarkUs before
 applying the diff.  If you have any special requirements for set up, this is where they should go.
 
+== When Things Go Wrong
+
+TestDrive uses the patch command to apply the review request diff.  If you don't have patch, there'll be problems.  Or,
+if patch has problems...well, then you've got problems.  At least for now, TestDrive doesn't detect when patch fails, so
+double check what's in the test_drive directory using "svn status" - in particular, look for files ending in .rej or .orig.
+This may mean you'll have to do some manual merging to make things work...
+
 == Requirements
 
 TestDrive, by default, sets up MarkUs instances with Sqlite3 database backends.  So you'll need the Sqlite3
 libraries for Ruby.  See {here}[http://accidentaltechnologist.com/ruby/ruby-on-rails/setting-up-sqlite3-for-ruby-on-rails-development/] for more information.
 
-You'll also need the {JSON Ruby gem}[http://flori.github.com/json/]
+You'll also need the {JSON Ruby gem}[http://flori.github.com/json/], and the {patch UNIX tool}[http://en.wikipedia.org/wiki/Patch_(Unix)].
+
+Oh, and Subversion - but as a MarkUs developer, you probably already have that.  ;)
 
 == Authors & Credits
 
