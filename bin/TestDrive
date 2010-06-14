@@ -28,6 +28,7 @@ RR_DIR_PREFIX = 'rev_req_'
 RR_DIFF_PREFIX = 'diff_for_rr_'
 SVN_CO_DIR_NAME = 'test_drive'
 MARKUS_REPO_DIR = 'repos'
+MARKUS_TEST_FRAMEWORK_REPO_DIR = 'test_framework_repos'
 SETUP_SHELL_SCRIPT = 'prepare_markus.sh'
 DEFAULT_BRANCH = 'trunk'
 OPTS = GetoptLong.new(
@@ -192,6 +193,7 @@ begin
     FileUtils.mkdir rr_dir
     FileUtils.cd rr_dir
     FileUtils.mkdir MARKUS_REPO_DIR
+    FileUtils.mkdir MARKUS_TEST_FRAMEWORK_REPO_DIR
     msgln("ok!")
     if File.exists?("../#{SETUP_SHELL_SCRIPT}")
       msg("Found setup shell script - copying to instance dir...")
