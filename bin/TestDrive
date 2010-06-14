@@ -92,7 +92,7 @@ class ReviewBoardClient
     if diff_num != LATEST
       path += diff_num.to_s
     end
-    path += '/raw/'
+    path += 'raw/'
     r = http.get(path, self.header)
     return r.body
   end
