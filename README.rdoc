@@ -2,13 +2,13 @@
 
 TestDrive is a handy script for developers working on {The MarkUs Project}[http://www.markusproject.org].
 
-The MarkUs Project practices pre-commit code review with {ReviewBoard}[http://www.reviewboard.org] in order to reduce the number of 
+The MarkUs Project practices pre-commit code review with {Review Board}[http://www.reviewboard.org] in order to reduce the number of 
 defects committed to the repository, and also as a way of quickly bringing new developers up to speed.
 
 But looking at the code is only half of the story.  It's just as important to *try* the code that's up
 for review, just to make sure it's up to snuff.  That's where TestDrive comes in.
 
-TestDrive will do the job of checking out a fresh copy of MarkUs, grabbing the diff up for review from ReviewBoard,
+TestDrive will do the job of checking out a fresh copy of MarkUs, grabbing the diff up for review from Review Board,
 configure the new MarkUs instance to your liking, splat the diff on top, and be up and running and ready for you to
 test drive in no time.
 
@@ -18,7 +18,7 @@ Call it pre-commit continuous integration.  I hope it'll help you find more bugs
 
 == Example usage
 
-Every review request up on ReviewBoard has a unique ID.  You can see this ID in the URL when you're viewing the
+Every review request up on Review Board has a unique ID.  You can see this ID in the URL when you're viewing the
 review request.  For example, if I was looking at a review request, and the URL looked like:
 
 http://review.markusproject.org/r/210
@@ -47,12 +47,7 @@ To get a full list of parameters, type in:
 
 == Setup and Configuration
 
-Once you've downloaded TestDrive, you'll need to do two things:
-
-First, open up TestDrive.conf.yml, and fill in your ReviewBoard username and password.
-
-Secondly, take a look at prepare_markus.sh.  This is the shell script that is run to "prepare" MarkUs before
-applying the diff.  If you have any special requirements for set up, this is where they should go.
+Once you've downloaded TestDrive, open up TestDrive.conf.yml, and fill in your Review Board username and password.
 
 == When Things Go Wrong
 
