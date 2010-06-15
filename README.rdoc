@@ -74,6 +74,9 @@ Oh, and Subversion - but as a MarkUs developer, you probably already have that. 
 
 Written by Mike Conley as an experiment, first mentioned on my blog {here}[http://mikeconley.ca/blog/2010/02/02/pre-commit-code-review-in-markus-development/].
 
-Thanks to {Severin}[http://www.jerboaa.org] for the help polishing it up!
+Other contributors:
+
+* {Severin Gehwolf}[http://www.jerboaa.org]
+* Evan Browning
 
 Want to help contribute to The MarkUs Project?  {Read more about it here!}[http://www.markusproject.org]
