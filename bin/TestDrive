@@ -167,7 +167,7 @@ def call_rake(arguments)
     puts "calling #{rake_cmd} " + arguments
     puts system("#{rake_cmd} " + arguments)
     puts $?
-  end
+end
 
 
 begin
