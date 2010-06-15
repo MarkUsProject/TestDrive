@@ -157,6 +157,19 @@ def beep()
   print "\a" if NOISY
 end
 
+#by Juan Pablo at http://jptarqu.blogspot.com/
+def call_rake(arguments)
+    if RUBY_PLATFORM =~ /mswin/
+      rake_cmd = "rake.bat" #very important because windows will break with just "rake"
+    else
+      rake_cmd = "rake"
+    end
+    puts "calling #{rake_cmd} " + arguments
+    puts system("#{rake_cmd} " + arguments)
+    puts $?
+  end
+
+
 begin
   params = load_params()
   conf = load_config(CONFIG_FILE)
@@ -195,21 +208,47 @@ begin
     FileUtils.mkdir MARKUS_REPO_DIR
     FileUtils.mkdir MARKUS_TEST_FRAMEWORK_REPO_DIR
     msgln("ok!")
-    if File.exists?("../#{SETUP_SHELL_SCRIPT}")
-      msg("Found setup shell script - copying to instance dir...")
-      FileUtils.cp "../#{SETUP_SHELL_SCRIPT}", "."
-      msgln("ok!")
-    end
 
     msg("Checking out instance from #{branch_path} - may take a minute or so...")
     `svn co #{branch_path} #{SVN_CO_DIR_NAME}`
     msgln("ok!")
 
-    # Prepare setup script
-    FileUtils.chmod(0744, SETUP_SHELL_SCRIPT)
-    # Run setup script
-    msgln("Running setup shell script:")
-    print `./#{SETUP_SHELL_SCRIPT}`
+
+    msgln("Modifying configuration files:")
+    File.open(SVN_CO_DIR_NAME + "/config/database.yml", "w" ) do |the_file|
+        the_file.puts "test:"
+        the_file.puts "  adapter: sqlite3"
+        the_file.puts "  database: db/test.db"
+        the_file.puts "production:"
+        the_file.puts "  adapter: sqlite3"
+        the_file.puts "  database: db/production.db"
+        the_file.puts "development:"
+        the_file.puts "  adapter: sqlite3"
+        the_file.puts "  database: db/development.db"
+    end
+
+    text = File.read(SVN_CO_DIR_NAME + "/config/environments/development.rb")
+    text = text.gsub(/REPOSITORY_STORAGE = ".*"/, 'REPOSITORY_STORAGE = "' + File.expand_path(File.dirname(__FILE__)) + '/' + MARKUS_REPO_DIR + '"')
+    text = text.gsub(/TEST_FRAMEWORK_REPOSITORY = ".*"/, 'TEST_FRAMEWORK_REPOSITORY = "' + File.expand_path(File.dirname(__FILE__)) + '/' + MARKUS_TEST_FRAMEWORK_REPO_DIR + '"')
+    File.open(SVN_CO_DIR_NAME + "/config/environments/development.rb", "w" ) do |the_file|
+      the_file.puts text
+    end
+
+    text = File.read(SVN_CO_DIR_NAME + "/config/environment.rb")
+    text = text.gsub(/RAILS_GEM_VERSION =/, '#RAILS_GEM_VERSION =')
+    File.open(SVN_CO_DIR_NAME + "/config/environment.rb", "w" ) do |the_file|
+      the_file.puts text
+    end
+
+    
+    if RUBY_PLATFORM =~ /mswin/
+      text = File.read(SVN_CO_DIR_NAME + "/app/models/user.rb")
+      text = text.gsub(/return AUTHENTICATE_BAD_PLATFORM/, 'return AUTHENTICATE_SUCCESS')
+      File.open(SVN_CO_DIR_NAME + "/app/models/user.rb", "w" ) do |the_file|
+        the_file.puts text
+      end
+    end
+
     msgln("Done!")
 
     # If the Diff starts with a header that contains the branch, we know
@@ -235,17 +274,19 @@ begin
     `patch -p#{p_value} < #{diff_file}`
 
     msgln("Creating / migrating databases...")
-    print `rake db:reset`
-    print `rake db:migrate`
-    print `rake db:schema:dump`
-    print `rake db:test:prepare`
+
+    call_rake('db:create')
+    call_rake('db:reset')
+    call_rake('db:migrate')
+    call_rake('db:schema:dump')
+    call_rake('db:test:prepare')
 
     msgln("Populating databases...")
-    print `rake db:populate`
+    call_rake('db:populate')
 
     if params['autotest']
       msg("Running tests (dumping to test_report)...give this a few minutes...")
-      print `rake test > ../test_report 2>&1`
+       call_rake('test > ../test_report 2>&1')
     end
     msgln("All done setting up!")
     beep()
