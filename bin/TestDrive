@@ -209,6 +209,9 @@ begin
     FileUtils.cd rr_dir
     FileUtils.mkdir MARKUS_REPO_DIR
     FileUtils.mkdir MARKUS_TEST_FRAMEWORK_REPO_DIR
+    FileUtils.mkdir MARKUS_REPO_DIR_TEST
+    FileUtils.mkdir MARKUS_TEST_FRAMEWORK_REPO_DIR_TEST
+
     msgln("ok!")
 
     msg("Checking out instance from #{branch_path} - may take a minute or so...")
