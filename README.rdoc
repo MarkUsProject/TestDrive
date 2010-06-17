@@ -71,7 +71,8 @@ Written by Mike Conley as an experiment, first mentioned on my blog {here}[http:
 
 Other contributors:
 
-* {Severin Gehwolf}[http://www.jerboaa.org]
 * Evan Browning
+* {Severin Gehwolf}[http://www.jerboaa.org]
+* Benjamin Vialle
 
 Want to help contribute to The MarkUs Project?  {Read more about it here!}[http://www.markusproject.org]
