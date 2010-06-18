@@ -6,6 +6,8 @@
 # http://www.markusproject.org
 # http://www.mikeconley.ca
 
+# Thanks to Benjamin and Evan, too.
+
 begin
   require 'fileutils'
   require 'yaml'
