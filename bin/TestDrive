@@ -242,7 +242,7 @@ begin
     text = File.read(SVN_CO_DIR_NAME + "/config/environments/test.rb")
     text = text.gsub(/REPOSITORY_STORAGE = ".*"/, 'REPOSITORY_STORAGE = "' + File.expand_path(File.dirname(__FILE__)) + '/' + MARKUS_REPO_DIR_TEST + '"')
     text = text.gsub(/TEST_FRAMEWORK_REPOSITORY = ".*"/, 'TEST_FRAMEWORK_REPOSITORY = "' + File.expand_path(File.dirname(__FILE__)) + '/' + MARKUS_TEST_FRAMEWORK_REPO_DIR_TEST + '"')
-    File.open(SVN_CO_DIR_NAME + "/config/environments/development.rb", "w" ) do |the_file|
+    File.open(SVN_CO_DIR_NAME + "/config/environments/test.rb", "w" ) do |the_file|
       the_file.puts text
     end
 
