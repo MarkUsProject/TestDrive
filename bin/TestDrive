@@ -252,11 +252,13 @@ begin
       the_file.puts text
     end
 
-    text = File.read(SVN_CO_DIR_NAME + "/config/environment.rb")
-    text = text.gsub(/RAILS_GEM_VERSION =/, '#RAILS_GEM_VERSION =')
-    File.open(SVN_CO_DIR_NAME + "/config/environment.rb", "w" ) do |the_file|
-      the_file.puts text
-    end
+    # Used to avoid Rails version detection
+    # Uncomment to use it :)
+    #text = File.read(SVN_CO_DIR_NAME + "/config/environment.rb")
+    #text = text.gsub(/RAILS_GEM_VERSION =/, '#RAILS_GEM_VERSION =')
+    #File.open(SVN_CO_DIR_NAME + "/config/environment.rb", "w" ) do |the_file|
+    #  the_file.puts text
+    #end
 
     
     if RUBY_PLATFORM =~ /mswin/
