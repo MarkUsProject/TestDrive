@@ -2,5 +2,7 @@ review_board:
   url: 'review.markusproject.org'
   username: ''
   password: ''
+git:
+  address: 'git://github.com/MarkUsProject/Markus.git'
 
 

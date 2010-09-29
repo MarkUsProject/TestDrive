@@ -34,8 +34,7 @@ MARKUS_PDF_STORAGE_DIR = 'pdf_storage'
 MARKUS_TEST_FRAMEWORK_REPO_DIR = 'test_framework_repos'
 MARKUS_REPO_DIR_TEST = 'repos-test'
 MARKUS_TEST_FRAMEWORK_REPO_DIR_TEST = 'test_framework_repos-test'
-SETUP_SHELL_SCRIPT = 'prepare_markus.sh'
-DEFAULT_BRANCH = 'trunk'
+DEFAULT_BRANCH = 'master'
 OPTS = GetoptLong.new(
       [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
       [ '--review-request-num', '-r', GetoptLong::REQUIRED_ARGUMENT ],
@@ -202,7 +201,7 @@ begin
   else
     branch = review_request['review_request']['branch']
   end
-  branch_path = review_request['review_request']['repository']['path'] + '/' + branch
+  branch_path = 'origin/' + branch
 
   # First, create the directory for this review_request
   begin
@@ -219,7 +218,8 @@ begin
     msgln("ok!")
 
     msg("Checking out instance from #{branch_path} - may take a minute or so...")
-    `svn co #{branch_path} #{SVN_CO_DIR_NAME}`
+    `git clone --depth 1 #{conf['git']['address']} #{SVN_CO_DIR_NAME}`
+    `git checkout -b #{branch} #{branch_path}`
     msgln("ok!")
 
 
@@ -291,7 +291,7 @@ begin
     File.open(diff_file, 'w') do |f|
       f.write(diff)
     end
-    `patch -p#{p_value} < #{diff_file}`
+    `git apply --reject --whitespace=fix #{diff_file}`
 
     msgln("Creating / migrating databases...")
 
