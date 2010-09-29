@@ -38,7 +38,7 @@ DEFAULT_BRANCH = 'master'
 OPTS = GetoptLong.new(
       [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
       [ '--review-request-num', '-r', GetoptLong::REQUIRED_ARGUMENT ],
-      [ '--diff', '-d', GetoptLong::OPTIONAL_ARGUMENT ], 
+      [ '--diff', '-d', GetoptLong::OPTIONAL_ARGUMENT ],
       [ '--autotest', '-a', GetoptLong::OPTIONAL_ARGUMENT ],
       [ '--autostart', '-s', GetoptLong::OPTIONAL_ARGUMENT ],
       [ '--pvalue', '-p', GetoptLong::OPTIONAL_ARGUMENT ]
