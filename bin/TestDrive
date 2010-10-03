@@ -52,44 +52,30 @@ end
 
 # This is what we'll use to connect to ReviewBoard...
 class ReviewBoardClient
-  attr_accessor :url, :username, :password, :header, :http
-  def initialize(url, username, password)
+  attr_accessor :url, :http
+
+  def initialize(url)
     self.url = url
-    self.username = username
-    self.password = password
-    self.http = nil
-    self.header = nil
-  end
-
-  def logged_in()
-    return self.header != nil
-  end
-
-  def login()
-    # Try to log into ReviewBoard
     self.http = Net::HTTP.new(self.url)
-    path = '/api/json/accounts/login/'
-    data = {'username' => self.username, 'password' => self.password} 
-    r = self.http.post(path, hash_to_querystring(data))
-    cookie = r.response['set-cookie']
-    if cookie.nil?
-      raise "Could not login to ReviewBoard with your credentials.  Check " + CONFIG_FILE
-    end
-    self.header = {
-      'Cookie' => cookie
-    }
-    return true
   end
 
   def get_review_request_for(review_request_num)
-    path = '/api/json/reviewrequests/' + review_request_num.to_s + '/'
-    r = self.http.get(path, self.header)
+    path = '/api/review-requests/' + review_request_num.to_s + '/'
+    r = self.http.get(path)
     if !r.is_a?(Net::HTTPSuccess)
-      raise "There was a problem getting review request ##{review_request_num} - are you sure it exists?"
+      raise "There was a problem communicating with the Review Board server!  :("
     end
+    result = JSON.parse(r.body)
+
+    if result['stat'] == "fail":
+      msg = "There was a problem getting review request ##{review_request_num}: "
+      msg += "#{result['err']['msg']} (Error Code: #{result['err']['code']})"
+      raise msg
+    end
+
     return JSON.parse(r.body)
   end
-  # Currently, there's no way to get the diffs through the API.  
+  # Currently, there's no way to get the diffs through the API.
   # (See:  http://www.mail-archive.com/reviewboard@googlegroups.com/msg00860.html)
   # Luckily, we can just go in through the front door instead...
   def get_diff_for(review_num, diff_num)
@@ -98,7 +84,7 @@ class ReviewBoardClient
       path += diff_num.to_s
     end
     path += 'raw/'
-    r = http.get(path, self.header)
+    r = http.get(path)
     return r.body
   end
 
@@ -177,11 +163,8 @@ end
 begin
   params = load_params()
   conf = load_config(CONFIG_FILE)
-  rb = ReviewBoardClient.new(conf['review_board']['url'], conf['review_board']['username'], conf['review_board']['password'])
-  # Log in to ReviewBoard...
-  msg("Logging into ReviewBoard...")
-  rb.login()
-  msgln("ok!")
+  rb = ReviewBoardClient.new(conf['review_board']['url'])
+
   msg("Trying to get Review Request ##{params['review_request_num']}...")
   # Get the review request
   review_request = rb.get_review_request_for(params['review_request_num'])

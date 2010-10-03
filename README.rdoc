@@ -47,14 +47,13 @@ To get a full list of parameters, type in:
 
 == Setup and Configuration
 
-Once you've downloaded TestDrive, open up TestDrive.conf.yml, and fill in your Review Board username and password.
+Once you've downloaded TestDrive, open up TestDrive.conf.yml, and make sure the settings look alright to you.
 
 == When Things Go Wrong
 
-TestDrive uses the patch command to apply the review request diff.  If you don't have patch, there'll be problems.  Or,
-if patch has problems...well, then you've got problems.  At least for now, TestDrive doesn't detect when patch fails, so
-double check what's in the test_drive directory using "svn status" - in particular, look for files ending in .rej or .orig.
-This may mean you'll have to do some manual merging to make things work...
+TestDrive uses the git-apply command to apply the review request diff.  If git-apply has problems...well, then you've got
+problems.  At least for now, TestDrive doesn't detect when patch fails, so keep an eye out.  This may mean you'll have to do
+some manual merging to make things work...
 
 == Requirements
 
@@ -63,7 +62,7 @@ libraries for Ruby.  See {here}[http://accidentaltechnologist.com/ruby/ruby-on-r
 
 You'll also need the {JSON Ruby gem}[http://flori.github.com/json/], and the {patch UNIX tool}[http://en.wikipedia.org/wiki/Patch_(Unix)].
 
-Oh, and Subversion - but as a MarkUs developer, you probably already have that.  ;)
+Oh, and Git - but as a MarkUs developer, you probably already have that.  ;)
 
 == Authors & Credits
 
