@@ -202,7 +202,6 @@ begin
 
     msg("Checking out instance from #{branch_path} - may take a minute or so...")
     `git clone --depth 1 #{conf['git']['address']} #{SVN_CO_DIR_NAME}`
-    `git checkout -b #{branch} #{branch_path}`
     msgln("ok!")
 
 
@@ -268,13 +267,23 @@ begin
 
     FileUtils.cd SVN_CO_DIR_NAME
 
+    if branch != DEFAULT_BRANCH
+      `git checkout -b #{branch}`
+    end
     # Apply diff
-    msgln("Applying diff...")
+    msg("Writing diff...")
     diff_file = RR_DIFF_PREFIX + params['review_request_num']
     File.open(diff_file, 'w') do |f|
       f.write(diff)
     end
-    `git apply --reject --whitespace=fix #{diff_file}`
+    msgln("ok!")
+
+    msg("Applying diff...")
+
+    if not system "git apply --reject --whitespace=fix #{diff_file}"
+      raise "**PATCHING FAILED**  Aborting TestDrive..."
+    end
+    msgln("ok!")
 
     msgln("Creating / migrating databases...")
 
