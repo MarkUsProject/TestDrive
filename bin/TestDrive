@@ -162,71 +162,21 @@ end
 
 def use_diff(target_branch, params, conf, rb, review_request)
 
-  target_branch_path = 'origin/' + target_branch
-
   msg("Trying to get diff #{params['diff_num']}...")
   diff = rb.get_diff_for(params['review_request_num'], params['diff_num'])
   msgln("got it!")
- # First, create the directory for this review_request
-  rr_dir = RR_DIR_PREFIX + params['review_request_num']
-  msg("Making instance directory '#{rr_dir}'...")
-  FileUtils.mkdir rr_dir
-  FileUtils.cd rr_dir
-  FileUtils.mkdir MARKUS_REPO_DIR
-  msgln("ok!")
 
-  msg("Checking out instance from #{target_branch_path} - may take a minute or so...")
-  `git clone --depth 1 #{conf['git']['address']} #{SVN_CO_DIR_NAME}`
-  msgln("ok!")
-
-  msgln("Modifying configuration files:")
-  File.open(SVN_CO_DIR_NAME + "/config/database.yml", "w" ) do |the_file|
-    the_file.puts "test:"
-    the_file.puts "  adapter: sqlite3"
-    the_file.puts "  database: db/test.db"
-    the_file.puts "production:"
-    the_file.puts "  adapter: sqlite3"
-    the_file.puts "  database: db/production.db"
-    the_file.puts "development:"
-    the_file.puts "  adapter: sqlite3"
-    the_file.puts "  database: db/development.db"
-  end
-
-  text = File.read(SVN_CO_DIR_NAME + "/config/environments/development.rb")
-  File.open(SVN_CO_DIR_NAME + "/config/environments/development.rb", "w" ) do |the_file|
-    the_file.puts text
-  end
-
-  text = File.read(SVN_CO_DIR_NAME + "/config/environments/test.rb")
-  File.open(SVN_CO_DIR_NAME + "/config/environments/test.rb", "w" ) do |the_file|
-    the_file.puts text
-  end
-
-  # Used to avoid Rails version detection
-  # Uncomment to use it :)
-  #text = File.read(SVN_CO_DIR_NAME + "/config/environment.rb")
-  #text = text.gsub(/RAILS_GEM_VERSION =/, '#RAILS_GEM_VERSION =')
-  #File.open(SVN_CO_DIR_NAME + "/config/environment.rb", "w" ) do |the_file|
-  #  the_file.puts text
-  #end
-
-  if RUBY_PLATFORM =~ /mswin/
-    text = File.read(SVN_CO_DIR_NAME + "/app/models/user.rb")
-    text = text.gsub(/return AUTHENTICATE_BAD_PLATFORM/, 'return AUTHENTICATE_SUCCESS')
-    File.open(SVN_CO_DIR_NAME + "/app/models/user.rb", "w" ) do |the_file|
-      the_file.puts text
-    end
-  end
-
-  msgln("Done!")
-
-  FileUtils.cd SVN_CO_DIR_NAME
-
+  # Change to the branch that this patch applies to
   if target_branch != DEFAULT_TARGET_BRANCH
     `git checkout -b #{target_branch}`
   end
-  # Apply diff
-  msg("Writing diff...")
+
+  # Create the branch for this review_request patch
+  branch_name = "rev-req-#{review_request['review_request']['id']}"
+  `git checkout -b #{branch_name}`
+
+   # Apply diff
+  msg("Applying diff...")
   diff_file = RR_DIFF_PREFIX + params['review_request_num']
   File.open(diff_file, 'w') do |f|
     f.write(diff)
@@ -239,12 +189,11 @@ def use_diff(target_branch, params, conf, rb, review_request)
     raise "**PATCHING FAILED**  Aborting TestDrive..."
   end
   msgln("ok!")
+
+  return branch_name
 end
 
 def use_branch(gh_branch, target_branch, conf, review_request)
-  FileUtils.cd(conf['git']['td_clone'])
-  # Make sure we've got the most recent updates
-  `git fetch origin`
   `git checkout #{target_branch}`
   # Attempt to find the GitHub account for the submitter
   submitter = review_request['review_request']['links']['submitter']['title']
@@ -254,9 +203,11 @@ def use_branch(gh_branch, target_branch, conf, review_request)
   end
 
   submitter_github = conf['github']['accounts'][submitter]
-  `git checkout -b #{submitter}-rev-req-#{review_request['review_request']['id']}`
+  branch_name = "#{submitter}-rev-req-#{review_request['review_request']['id']}"
+  `git checkout -b #{branch_name}`
   `git pull #{submitter_github} #{gh_branch}`
 
+  return branch_name
 end
 
 def extract_branch(review_request)
@@ -290,6 +241,10 @@ begin
     target_branch = review_request['review_request']['branch']
   end
 
+  FileUtils.cd(conf['git']['td_clone'])
+
+  # Make sure we've got the most recent updates
+  `git fetch origin`
 
   # Ok, and now we check to see if the review request has a @branch
   # in the description.  If so, we're going to try to pull from Github
@@ -297,12 +252,15 @@ begin
 
   if (gh_branch = extract_branch(review_request))
     # Ok, we found a @branch
-    use_branch(gh_branch, target_branch, conf, review_request)
+    result_branch_name = use_branch(gh_branch, target_branch, conf, review_request)
   else
-    use_diff(target_branch, params, conf, rb, review_request)
+    result_branch_name = use_diff(target_branch, params, conf, rb, review_request)
   end
 
   # Assumes we're in the working directory for the test drive...
+
+  msgln("Running bundler...")
+  `bundle install`
 
   msgln("Creating / migrating databases...")
 
@@ -316,15 +274,16 @@ begin
 
   if params['autotest']
     msg("Running tests (dumping to test_report)...give this a few minutes...")
-     call_rake('test > ../test_report 2>&1')
+    call_rake('test 2>&1 | tee test_report')
   end
+
   msgln("All done setting up!")
   beep()
   if params['autostart']
     msgln("Firing it up! - should be good to go on localhost:3000 momentarily...")
     exec 'script/server'
   end
-  msgln("All done!  Created:  #{RR_DIR_PREFIX + params['review_request_num']}.  Coolbeans!")
+  msgln("All done!  Created branch #{result_branch_name}.  Coolbeans!")
 
 rescue GetoptLong::MissingArgument, GetoptLong::NeedlessArgument, GetoptLong::InvalidOption => e
   puts e.message
