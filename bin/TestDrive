@@ -189,6 +189,8 @@ end
 
 def use_branch(gh_branch, target_branch, gh_accounts, review_request)
   `git checkout #{target_branch}`
+  `git pull origin #{target_branch}`
+
   # Attempt to find the GitHub account for the submitter
   submitter = review_request['review_request']['links']['submitter']['title']
 
