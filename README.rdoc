@@ -8,9 +8,9 @@ defects committed to the repository, and also as a way of quickly bringing new d
 But looking at the code is only half of the story.  It's just as important to *try* the code that's up
 for review, just to make sure it's up to snuff.  That's where TestDrive comes in.
 
-TestDrive will do the job of checking out a fresh copy of MarkUs, grabbing the diff up for review from Review Board,
-configure the new MarkUs instance to your liking, splat the diff on top, and be up and running and ready for you to
-test drive in no time.
+TestDrive has its own clone of the MarkUs repository.  When you TestDrive a review request, TestDrive will
+make sure that repository is up to date, and then try to splat the patch from the review request onto the
+repository.
 
 TestDrive will even run the MarkUs test suites for you, and compile it into a report, if you'd like.
 
@@ -47,7 +47,29 @@ To get a full list of parameters, type in:
 
 == Setup and Configuration
 
-Once you've downloaded TestDrive, open up TestDrive.conf.yml, and make sure the settings look alright to you.
+Once you've downloaded TestDrive, do the following:
+
+1.  Clone a fresh copy of the MarkUs Github repository
+2.  Copy config/database.yml.sqlite3 to config/database.yml (or otherwise configure MarkUs to work with your
+    current database layout)
+
+Open up TestDrive.conf.yml, and make sure td_clone points to that cloned repositories path.  That's it!
+
+== @branches
+
+Review Board currently has a bug that distorts git diffs that create new files.  Until this is fixed, it is
+not possible for us to use the apply-patch method for TestDriving those review requests.
+
+Similarly, text diffs cannot contain binary files.  So if your review request includes things like images,
+or other binary data, it's not going to be included in the TestDrive.
+
+To deal with this, we have a work-around:
+
+1.  Have the review requester push their patch to a branch on their Github account
+2.  Have the review requester include "@branch <branch-name>" in the description of their review request
+
+When TestDrive sees @branch <branch-name>, it'll attempt to grab/merge that branch from the review requester's
+Github account (assuming they are listed in github_accounts.yml).
 
 == When Things Go Wrong
 
@@ -57,12 +79,7 @@ some manual merging to make things work...
 
 == Requirements
 
-TestDrive, by default, sets up MarkUs instances with Sqlite3 database backends.  So you'll need the Sqlite3
-libraries for Ruby.  See {here}[http://accidentaltechnologist.com/ruby/ruby-on-rails/setting-up-sqlite3-for-ruby-on-rails-development/] for more information.
-
-You'll also need the {JSON Ruby gem}[http://flori.github.com/json/], and the {patch UNIX tool}[http://en.wikipedia.org/wiki/Patch_(Unix)].
-
-Oh, and Git - but as a MarkUs developer, you probably already have that.  ;)
+You'll need the {JSON Ruby gem}[http://flori.github.com/json/].  Oh, and Git - but as a MarkUs developer, you probably already have that.  ;)
 
 == Authors & Credits
 
