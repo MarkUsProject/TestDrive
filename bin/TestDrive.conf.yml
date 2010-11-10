@@ -4,7 +4,3 @@ review_board:
 git:
   td_clone: "/home/mike/Projects/MarkUs/TestDrive/td_clone"
   address: "git://github.com/MarkUsProject/Markus.git"
-
-github:
-  accounts:
-     nvaroqua: "http://github.com/NelleV/Markus.git"

@@ -23,6 +23,7 @@ rescue LoadError => e
 end
 
 CONFIG_FILE = 'TestDrive.conf.yml'
+GITHUB_ACCOUNTS_FILE = 'github_accounts.yml'
 VERBOSE = true
 NOISY = true
 LATEST = 'latest'
@@ -99,13 +100,6 @@ class ReviewBoardClient
   end
 end
 
-
-def load_config(config_file)
-  conf = YAML.load_file(config_file)  
-  # This is where I might configuration checks someday...
-  return conf
-end
-
 def load_params()
   result = Hash.new
   result['diff_num'] = LATEST
@@ -160,7 +154,7 @@ def call_rake(arguments)
 end
 
 
-def use_diff(target_branch, params, conf, rb, review_request)
+def use_diff(target_branch, params, rb, review_request)
 
   msg("Trying to get diff #{params['diff_num']}...")
   diff = rb.get_diff_for(params['review_request_num'], params['diff_num'])
@@ -193,16 +187,16 @@ def use_diff(target_branch, params, conf, rb, review_request)
   return branch_name
 end
 
-def use_branch(gh_branch, target_branch, conf, review_request)
+def use_branch(gh_branch, target_branch, gh_accounts, review_request)
   `git checkout #{target_branch}`
   # Attempt to find the GitHub account for the submitter
   submitter = review_request['review_request']['links']['submitter']['title']
 
-  if not conf['github']['accounts'].has_key?(submitter)
-    raise "I couldn't find a GitHub link for #{submitter} in your TestDrive.yml.conf.  :("
+  if not gh_accounts.has_key?(submitter)
+    raise "I couldn't find a GitHub link for #{submitter} in your #{GITHUB_ACCOUNTS_FILE}.  :("
   end
 
-  submitter_github = conf['github']['accounts'][submitter]
+  submitter_github = gh_accounts[submitter]
   branch_name = "#{submitter}-rev-req-#{review_request['review_request']['id']}"
   `git checkout -b #{branch_name}`
   `git pull #{submitter_github} #{gh_branch}`
@@ -211,7 +205,7 @@ def use_branch(gh_branch, target_branch, conf, review_request)
 end
 
 def extract_branch(review_request)
-  branch_scan = review_request['review_request']['description'].scan(/@branch\s+(\w+)/)
+  branch_scan = review_request['review_request']['description'].scan(/@branch\s+([\w\S]+)/)
   if branch_scan.empty?
     return nil
   else
@@ -221,7 +215,9 @@ end
 
 begin
   params = load_params()
-  conf = load_config(CONFIG_FILE)
+  conf = YAML.load_file(CONFIG_FILE)  
+  gh_accounts = YAML.load_file(GITHUB_ACCOUNTS_FILE)
+
   rb = ReviewBoardClient.new(conf['review_board']['url'])
 
   msg("Trying to get Review Request ##{params['review_request_num']}...")
@@ -252,9 +248,9 @@ begin
 
   if (gh_branch = extract_branch(review_request))
     # Ok, we found a @branch
-    result_branch_name = use_branch(gh_branch, target_branch, conf, review_request)
+    result_branch_name = use_branch(gh_branch, target_branch, gh_accounts, review_request)
   else
-    result_branch_name = use_diff(target_branch, params, conf, rb, review_request)
+    result_branch_name = use_diff(target_branch, params, rb, review_request)
   end
 
   # Assumes we're in the working directory for the test drive...
